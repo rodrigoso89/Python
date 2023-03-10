@@ -9,12 +9,14 @@ client.delete_object(
     )	
 '''
 
+#Apaga varios arquivos listando primeiro todo o conteúdo do bucket S3 amazon
 client = boto3.client('s3')
 bucket = 'bucket-name'
 all_objects = client.list_objects_v2(Bucket=bucket)
 data = all_objects['Contents']
 
-#laço pra evitar limitação de 1000 linhas do list_objects_v2
+#laço pra evitar limitação de 1000 linhas do list_objects_v2 - Sai do loop quando IsTruncated virar false
+#IsTruncated(true) - marcação que indica que há mais de 1000 registros no bucket s3 amazon
 while all_objects['IsTruncated']:
     all_objects = client.list_objects_v2(Bucket=bucket, ContinuationToken=all_objects['NextContinuationToken'])
     for item in all_objects['Contents']:
@@ -25,6 +27,7 @@ def del_file(filename):
         Bucket=bucket,
         Key=filename)
 
+#se a condição não satisfazer, não executa o print e del
 print(":::INICIO Limpar Diretórios")
 for a in data:
     #print(a)
