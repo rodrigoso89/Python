@@ -1,0 +1,46 @@
+import boto3
+
+'''
+#Apaga 1 arquivo com nome exato
+client = boto3.client('s3')
+client.delete_object(
+    Bucket='itau-self-wkp-sa-east-1-390429122433',
+    Key='Hom_NPC/1_Vazias/7009/teste.txt'
+    )	
+'''
+
+client = boto3.client('s3')
+bucket = 'itau-self-wkp-sa-east-1-390429122433'
+all_objects = client.list_objects_v2(Bucket=bucket)
+data = all_objects['Contents']
+
+#laço pra evitar limitação de 1000 linhas do list_objects_v2
+while all_objects['IsTruncated']:
+    all_objects = client.list_objects_v2(Bucket=bucket, ContinuationToken=all_objects['NextContinuationToken'])
+    for item in all_objects['Contents']:
+        data.append(item)
+
+def del_file(filename):
+    client.delete_object(
+        Bucket=bucket,
+        Key=filename)
+
+print(":::INICIO Limpar Diretórios")
+for a in data:
+    #print(a)
+    if 'Hom_NPC/1_Vazias/7009/' in a['Key'] and a['Key'] != 'Hom_NPC/1_Vazias/7009/':
+        print (f":::Arquivo que será apagado: {a['Key']}")
+        del_file(a['Key'])
+    if 'Hom_NPC/1_Vazias/7010/' in a['Key'] and a['Key'] != 'Hom_NPC/1_Vazias/7010/':
+        print (f":::Arquivo que será apagado: {a['Key']}")
+        del_file(a['Key'])
+    if 'Hom_NPC/1_Vazias/7011/' in a['Key'] and a['Key'] != 'Hom_NPC/1_Vazias/7011/':
+        print (f":::Arquivo que será apagado: {a['Key']}")
+        del_file(a['Key'])
+    if 'Hom_NPC/1_Vazias/7015/' in a['Key'] and a['Key'] != 'Hom_NPC/1_Vazias/7015/':
+        print (f":::Arquivo que será apagado: {a['Key']}")
+        del_file(a['Key'])
+    if 'Hom_NPC/1_Vazias/7019/' in a['Key'] and a['Key'] != 'Hom_NPC/1_Vazias/7019/':
+        print (f":::Arquivo que será apagado: {a['Key']}")
+        del_file(a['Key'])
+print(":::FIM Limpar Diretórios")
