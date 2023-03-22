@@ -1,0 +1,43 @@
+#dgoszao
+
+import sys
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from pyspark.sql import SQLContext
+from awsglue import DynamicFrame
+from datetime import datetime
+from pytz import timezone
+import boto3
+from awsglue.transforms import Filter
+
+# Configuracoes
+args = getResolvedOptions(sys.argv, ["JOB_NAME"])
+sc = SparkContext()
+glueContext = GlueContext(sc)
+sqlContext = SQLContext(sc.getOrCreate())
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args["JOB_NAME"], args)
+
+# Database and tables
+db_origem = "db_origem_xxx"
+input_tbl_name1 = "tb_cliente"
+
+def geraultimaparticao(nm_db, nm_tbla, anomesdia):
+    max_partition = glueContext.create_dynamic_frame.from_catalog(
+        database=nm_db,
+        table_name=nm_tbla,
+        transformation_ctx="dataframepartition",
+        additional_options={"recurse": True},
+        push_down_predicate=anomesdia + "> 20220512",
+    ).toDF().agg({anomesdia: "max"}).collect()[0][0]
+
+    if (max_partition is None):
+        max_partition = '19000101'
+        print(max_partition)
+    return max_partition
+
+max_partition = geraultimaparticao(db_origem,input_tbl_name1,"anomesdia")
+print(":::Ultima partição disponível: " + max_partition)
