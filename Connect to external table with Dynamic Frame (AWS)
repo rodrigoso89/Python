@@ -1,0 +1,66 @@
+import sys
+from pyspark.sql.functions import *
+from pyspark.sql import SparkSession
+from pyspark.sql import SQLContext
+from pyspark.sql.types import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.dynamicframe import DynamicFrame
+from awsglue.job import Job
+
+# Configuracoes
+args = getResolvedOptions(sys.argv, ["JOB_NAME"])
+sc = SparkContext()
+glueContext = GlueContext(sc)
+sqlContext = SQLContext(sc.getOrCreate())
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args["JOB_NAME"], args)
+
+# Database and tables
+db_origem = "db_origem_xxx"
+input_tbl_name = "tb_cliente"
+db_destino = 'db_destino_xxx'
+output_tbl_name = "tb_cliente"
+
+# Extração dos dados
+work_dyf = glueContext.create_dynamic_frame.from_catalog(
+    database = db_origem, 
+    table_name = input_tbl_name,
+    push_down_predicate = "anomesdia = 20230314"
+)
+
+# Transformações
+work_df = work_dyf.toDF()
+
+sqlContext.registerDataFrameAsTable(work_df, "work_table")
+work_df = sqlContext.sql("select * from work_table")
+
+# Turn it back to a dynamic frame
+work_tmp = DynamicFrame.fromDF(work_df, glueContext, "nested")
+
+# DF para work_nest
+work_nest1 = work_tmp.apply_mapping([
+('cod_user', 'string', 'cod_user', 'string'),
+('anomesdia', 'string', 'anomesdia', 'int')
+])
+
+# Carga do dados1
+glueContext.write_dynamic_frame.from_options(
+    frame=work_nest1,
+    connection_type='s3',
+    connection_options={'path': 's3://bucket_name/folder/'}, format='parquet',
+    transformation_ctx='datasink4'
+)
+print(":::Carga OK")
+
+# Carga do dados2
+output = glueContext.write_dynamic_frame.from_catalog(
+    frame=work_nest,
+    database=db_destino,
+    table_name=output_tbl_name
+)
+print(":::Tabela Criada")
+
+job.commit()
